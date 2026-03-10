@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.ruff_cache/
+
+# Model weights (large files — track with Git LFS or exclude)
+spatnic/weights/*.pt
+
+# Temporary files
+_tmp_*.pth
+*.ipynb_checkpoints/

@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spatnic"
+version = "0.1.0"
+description = "SPATNIC: Spatial Pathology-based Typist for Normal / Cancer"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Shunsuke Sakai", email = "shunsukes510@gmail.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.22",
+    "scipy>=1.9",
+    "scanpy>=1.9",
+    "scikit-learn>=1.1",
+    "anndata>=0.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.urls]
+# Homepage = "https://github.com/youruser/spatnic"
+# Issues = "https://github.com/youruser/spatnic/issues"
+
+[tool.setuptools.packages.find]
+include = ["spatnic*"]
+
+[tool.setuptools.package-data]
+spatnic = ["weights/*.pt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
