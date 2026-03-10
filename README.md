@@ -2,12 +2,12 @@
 
 **S**patial **Pa**thology-based **T**ypist for **N**ormal / **C**ancer
 
-Single-cell/spatial transcriptomics data から腫瘍細胞をアノテーションするツール。
+A pip-installable tool for annotating tumor cells in single-cell and spatial transcriptomics data using a Student-t VAE classifier.
 
-## Install
+## Installation
 
 ```bash
-pip install /path/to/spatnic
+pip install git+https://github.com/shusakai/spatnic.git
 ```
 
 ## Quick Start
@@ -16,15 +16,15 @@ pip install /path/to/spatnic
 import scanpy as sc
 import spatnic
 
-# データの読み込みと前処理
+# Load and preprocess your data
 adata = sc.read_h5ad("your_data.h5ad")
 sc.pp.normalize_total(adata)
 sc.pp.log1p(adata)
 
-# 予測（デフォルト: Tumor vs Normal）
+# Predict (default: Tumor vs Normal)
 spatnic.predict(adata)
 
-# 結果は adata.obs に追加される
+# Results are added to adata.obs
 print(adata.obs["spatnic_pred"].value_counts())
 print(adata.obs["spatnic_score"].describe())
 ```
@@ -33,15 +33,15 @@ print(adata.obs["spatnic_score"].describe())
 
 | Model | Description | Classes |
 |-------|-------------|---------|
-| `tumor_normal` (default) | がん細胞 vs 正常上皮細胞 | Normal, Tumor |
-| `tumor_other` | がん細胞 vs その他の細胞 | Other, Tumor |
+| `tumor_normal` (default) | Tumor vs normal epithelial cells | Normal, Tumor |
+| `tumor_other` | Tumor vs all other cell types | Other, Tumor |
 
 ```python
-# モデルを指定
+# Select a model
 spatnic.predict(adata, model="tumor_normal")
 spatnic.predict(adata, model="tumor_other")
 
-# カスタムモデル（fine-tuning後）
+# Use a custom (fine-tuned) model
 spatnic.predict(adata, model="path/to/finetuned.pt")
 ```
 
@@ -55,7 +55,7 @@ spatnic.finetune(
     save_path="my_finetuned.pt",
 )
 
-# fine-tuned モデルで予測
+# Predict with the fine-tuned model
 spatnic.predict(adata_new, model="my_finetuned.pt")
 ```
 
@@ -64,30 +64,30 @@ spatnic.predict(adata_new, model="my_finetuned.pt")
 ```python
 spatnic.predict(
     adata,
-    model="tumor_normal",    # モデル名 or パス
-    threshold=0.5,            # 分類閾値
-    batch_size=2048,          # バッチサイズ
-    key_added="spatnic_pred", # obs に追加するキー名
+    model="tumor_normal",      # model name or path
+    threshold=0.5,              # classification threshold
+    batch_size=2048,            # batch size for inference
+    key_added="spatnic_pred",   # obs key for predicted labels
     score_key_added="spatnic_score",
-    layer_key=None,           # 使用するlayer（Noneなら .X）
-    return_latent=False,      # Trueなら潜在表現も返す
-    device=None,              # "cuda" or "cpu"（自動検出）
+    layer_key=None,             # AnnData layer to use (None = .X)
+    return_latent=False,        # if True, also returns latent representation
+    device=None,                # "cuda" or "cpu" (auto-detected)
 )
 ```
 
 ## Checkpoint Export (for developers)
 
-ノートブックで学習した後、チェックポイントをエクスポート:
+After training in a notebook, export a checkpoint:
 
 ```python
 from spatnic import export_checkpoint
 
 export_checkpoint(
-    state_dict_path="student_t_vae_cls_weights_primary.pth",
+    state_dict_path="student_t_vae_cls_weights.pth",
     gene_names=list(adata_hvg.var_names),  # 3000 genes
     mu_g=mu_g,  # per-gene mean from training set
     std_g=std_g,  # per-gene std from training set
-    save_path="tumor_normal.pt",
+    model_name="tumor_normal",
     label_map={0: "Normal", 1: "Tumor"},
 )
 ```
@@ -108,3 +108,7 @@ export_checkpoint(
     accuracy                           0.96     97804
 ROC-AUC: 0.9909
 ```
+
+## License
+
+MIT

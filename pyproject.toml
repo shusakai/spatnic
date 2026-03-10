@@ -36,8 +36,8 @@ dependencies = [
 dev = ["pytest", "ruff"]
 
 [project.urls]
-# Homepage = "https://github.com/youruser/spatnic"
-# Issues = "https://github.com/youruser/spatnic/issues"
+Homepage = "https://github.com/shusakai/spatnic"
+Issues = "https://github.com/shusakai/spatnic/issues"
 
 [tool.setuptools.packages.find]
 include = ["spatnic*"]
