@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import urllib.request
 import warnings
 from pathlib import Path
 from typing import Optional
@@ -15,6 +16,10 @@ from .preprocessing import align_genes, standardize_csr
 
 _WEIGHTS_DIR_PKG = Path(__file__).parent / "weights"
 _WEIGHTS_DIR_USER = Path.home() / ".spatnic" / "weights"
+
+_GITHUB_RELEASE_URL = (
+    "https://github.com/shusakai/spatnic/releases/download/v0.1.0"
+)
 
 # Built-in model registry: name -> checkpoint filename
 MODELS = {
@@ -42,6 +47,26 @@ class _CSRRowDataset(Dataset):
         return torch.from_numpy(row), torch.tensor(0, dtype=torch.long)
 
 
+def _download_weights(fname: str, dest: Path) -> Path:
+    """Download model weights from GitHub Releases."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    url = f"{_GITHUB_RELEASE_URL}/{fname}"
+    target = dest.parent / fname
+    print(f"[SPATNIC] Downloading {fname} from GitHub Releases...")
+    try:
+        urllib.request.urlretrieve(url, str(target))
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to download {url}. Check your internet connection.\n"
+            f"You can also manually download the file and place it in "
+            f"{_WEIGHTS_DIR_USER}/\n"
+            f"Error: {e}"
+        ) from e
+    size_mb = target.stat().st_size / 1e6
+    print(f"[SPATNIC] Saved to {target} ({size_mb:.1f} MB)")
+    return target
+
+
 def _load_checkpoint(model_name_or_path: str) -> dict:
     """Load a checkpoint from a built-in model name or a file path."""
     path = Path(model_name_or_path)
@@ -55,11 +80,8 @@ def _load_checkpoint(model_name_or_path: str) -> dict:
                     path = candidate
                     break
             else:
-                raise FileNotFoundError(
-                    f"Model '{model_name_or_path}' not found in "
-                    f"{_WEIGHTS_DIR_USER} or {_WEIGHTS_DIR_PKG}. "
-                    f"Run `spatnic.export_checkpoint(...)` to create it."
-                )
+                # Auto-download from GitHub Releases
+                path = _download_weights(fname, _WEIGHTS_DIR_USER / fname)
         else:
             raise FileNotFoundError(
                 f"Model '{model_name_or_path}' not found. "
