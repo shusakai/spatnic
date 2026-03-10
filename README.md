@@ -2,12 +2,12 @@
 
 **S**patial **Pa**thology-based **T**ypist for **N**ormal / **C**ancer
 
-A pip-installable tool for annotating tumor cells in single-cell and spatial transcriptomics data using a Student-t VAE classifier.
+A pip-installable tool for annotating tumor cells in single-cell and spatial transcriptomics data using a Student-t VAE classifier. Pre-trained models are specialized for **colorectal cancer (CRC)** tissue.
 
 ## Installation
 
 ```bash
-pip install git+https://github.com/shusakai/spatnic.git
+pip install spatnic
 ```
 
 ## Quick Start
