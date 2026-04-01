@@ -26,7 +26,9 @@ spatnic.predict(adata)
 
 # Results are added to adata.obs
 print(adata.obs["spatnic_pred"].value_counts())
-print(adata.obs["spatnic_score"].describe())
+print(adata.obs["spatnic_score"].describe())        # Tumor probability
+print(adata.obs["spatnic_score_Normal"].describe())  # Normal probability
+print(adata.obs["spatnic_score_Tumor"].describe())   # Tumor probability
 ```
 
 ## Models
@@ -68,7 +70,7 @@ spatnic.predict(
     threshold=0.5,              # classification threshold
     batch_size=2048,            # batch size for inference
     key_added="spatnic_pred",   # obs key for predicted labels
-    score_key_added="spatnic_score",
+    score_key_added="spatnic_score",  # also adds spatnic_score_Normal, spatnic_score_Tumor
     layer_key=None,             # AnnData layer to use (None = .X)
     return_latent=False,        # if True, also returns latent representation
     device=None,                # "cuda" or "cpu" (auto-detected)
