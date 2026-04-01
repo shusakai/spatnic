@@ -132,8 +132,12 @@ def predict(
     Returns
     -------
     adata : AnnData
-        The input AnnData with ``adata.obs[key_added]`` and
-        ``adata.obs[score_key_added]`` added.
+        The input AnnData with the following columns added to ``adata.obs``:
+
+        - ``key_added`` — predicted label (e.g. "Tumor" / "Normal").
+        - ``score_key_added`` — positive-class (Tumor) probability.
+        - ``score_key_added + "_<Label>"`` — per-class probabilities
+          (e.g. ``spatnic_score_Normal``, ``spatnic_score_Tumor``).
     latent : np.ndarray, optional
         Latent representation, only if ``return_latent=True``.
     """
@@ -205,17 +209,21 @@ def predict(
         for xb, _ in loader:
             xb = xb.to(device)
             mu_z, _, _, _, logits = net(xb)
-            p = torch.softmax(logits, dim=1)[:, 1].cpu().numpy()
+            p = torch.softmax(logits, dim=1).cpu().numpy()
             probs_list.append(p)
             if return_latent:
                 mu_z_list.append(mu_z.cpu().numpy())
 
-    scores = np.concatenate(probs_list)
+    all_probs = np.concatenate(probs_list, axis=0)  # (n_cells, n_classes)
+    scores = all_probs[:, 1]  # positive-class score (backward compat)
     preds = (scores >= threshold).astype(int)
     pred_labels = np.array([label_map[p] for p in preds])
 
     adata.obs[key_added] = pred_labels
     adata.obs[score_key_added] = scores
+    # Per-class probability columns
+    for cls_idx, cls_label in label_map.items():
+        adata.obs[f"{score_key_added}_{cls_label}"] = all_probs[:, cls_idx].astype(np.float32)
 
     print(
         f"[SPATNIC] Predictions: "

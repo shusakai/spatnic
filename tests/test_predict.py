@@ -71,6 +71,8 @@ class TestPredict:
         result = predict(adata, model=path, device="cpu", num_workers=0)
         assert "spatnic_pred" in adata.obs.columns
         assert "spatnic_score" in adata.obs.columns
+        assert "spatnic_score_Normal" in adata.obs.columns
+        assert "spatnic_score_Tumor" in adata.obs.columns
         assert len(adata.obs["spatnic_pred"]) == 20
         assert set(adata.obs["spatnic_pred"].unique()).issubset({"Normal", "Tumor"})
 
@@ -117,3 +119,19 @@ class TestPredict:
         scores = adata.obs["spatnic_score"].values
         assert np.all(scores >= 0.0)
         assert np.all(scores <= 1.0)
+
+    def test_per_class_probabilities_sum_to_one(self, tmp_path):
+        path = _create_checkpoint(tmp_path)
+        adata = _create_adata()
+        predict(adata, model=path, device="cpu", num_workers=0)
+        normal_prob = adata.obs["spatnic_score_Normal"].values
+        tumor_prob = adata.obs["spatnic_score_Tumor"].values
+        np.testing.assert_allclose(normal_prob + tumor_prob, 1.0, atol=1e-6)
+
+    def test_custom_keys_per_class(self, tmp_path):
+        path = _create_checkpoint(tmp_path)
+        adata = _create_adata()
+        predict(adata, model=path, score_key_added="my_score",
+                device="cpu", num_workers=0)
+        assert "my_score_Normal" in adata.obs.columns
+        assert "my_score_Tumor" in adata.obs.columns
