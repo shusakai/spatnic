@@ -128,3 +128,15 @@ class StudentTVAECls(nn.Module):
         dec_out, logvar_x = self.decode(z)
         logits = self.cls(z)
         return mu_z, logvar_z, dec_out, logvar_x, logits
+
+    def classify(self, x):
+        """Inference-only path: encoder + classifier, decoder skipped.
+
+        Returns ``(mu_z, logits)``. The classifier still consumes the
+        reparameterized sample, so logits match ``forward()`` exactly —
+        only the unused decoder branch is dropped.
+        """
+        mu_z, logvar_z = self.encode(x)
+        z = self.reparam(mu_z, logvar_z)
+        logits = self.cls(z)
+        return mu_z, logits

@@ -9,7 +9,6 @@ from typing import Optional
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
 
 from .model import StudentTVAECls
 from .preprocessing import align_genes, standardize_csr
@@ -32,19 +31,6 @@ LABEL_MAPS = {
     "tumor_normal": {0: "Normal", 1: "Tumor"},
     "tumor_other": {0: "Other", 1: "Tumor"},
 }
-
-
-class _CSRRowDataset(Dataset):
-    def __init__(self, X_csr):
-        self.X = X_csr
-        self.n = X_csr.shape[0]
-
-    def __len__(self):
-        return self.n
-
-    def __getitem__(self, i):
-        row = self.X[i].toarray().ravel().astype(np.float32)
-        return torch.from_numpy(row), torch.tensor(0, dtype=torch.long)
 
 
 def _download_weights(fname: str, dest: Path) -> Path:
@@ -117,7 +103,8 @@ def predict(
     batch_size : int
         Batch size for inference.
     num_workers : int
-        DataLoader workers.
+        Deprecated and ignored. Inference no longer uses a DataLoader;
+        batches are densified directly from the sparse matrix.
     key_added : str
         Key in ``adata.obs`` to store predicted labels.
     score_key_added : str
@@ -194,23 +181,17 @@ def predict(
     # Standardize
     X_std = standardize_csr(X_aligned, mu_g, std_safe)
 
-    # DataLoader
-    loader = DataLoader(
-        _CSRRowDataset(X_std),
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=(device != "cpu"),
-    )
-
-    # Inference
+    # Inference — densify the standardized CSR matrix one batch at a time
+    # (vectorized .toarray() on a row slice, instead of per-row Python calls)
+    # and run the encoder + classifier only, skipping the decoder.
+    n_cells = X_std.shape[0]
     probs_list, mu_z_list = [], []
     with torch.no_grad():
-        for xb, _ in loader:
-            xb = xb.to(device)
-            mu_z, _, _, _, logits = net(xb)
-            p = torch.softmax(logits, dim=1).cpu().numpy()
-            probs_list.append(p)
+        for start in range(0, n_cells, batch_size):
+            xb_np = X_std[start:start + batch_size].toarray().astype(np.float32)
+            xb = torch.from_numpy(xb_np).to(device)
+            mu_z, logits = net.classify(xb)
+            probs_list.append(torch.softmax(logits, dim=1).cpu().numpy())
             if return_latent:
                 mu_z_list.append(mu_z.cpu().numpy())
 

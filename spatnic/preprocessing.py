@@ -2,7 +2,7 @@
 
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse import csc_matrix, csr_matrix
+from scipy.sparse import csr_matrix
 
 
 def standardize_csr(X_csr, mean, std):
@@ -59,12 +59,20 @@ def align_genes(adata, train_genes, layer_key=None):
 
     n_matched = int(present_mask.sum())
 
-    # Rearrange columns
+    # Rearrange columns into train-gene order, zero-filling missing genes.
+    # Build the result directly from COO triplets — assigning matched columns
+    # into an empty csc_matrix changes its sparsity structure and is very slow
+    # (scipy raises SparseEfficiencyWarning for exactly this pattern).
     n_cells = adata.n_obs
     G = len(train_genes)
-    X_src_csc = X_src.tocsc()
-    X_eval_csc = csc_matrix((n_cells, G), dtype=np.float32)
     if idx_tr_present.size > 0:
-        X_eval_csc[:, idx_tr_present] = X_src_csc[:, idx_bm_present]
+        matched = X_src.tocsc()[:, idx_bm_present].tocoo()
+        new_cols = idx_tr_present[matched.col]
+        X_aligned = csr_matrix(
+            (matched.data, (matched.row, new_cols)),
+            shape=(n_cells, G), dtype=np.float32,
+        )
+    else:
+        X_aligned = csr_matrix((n_cells, G), dtype=np.float32)
 
-    return X_eval_csc.tocsr(), n_matched
+    return X_aligned, n_matched
